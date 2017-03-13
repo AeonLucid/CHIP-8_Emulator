@@ -8,7 +8,7 @@ namespace CHIP_8_Emulator
         {
             using (var game = new ChipWindow())
             {
-                game.Run(60); // 60 Hz
+                game.Run(60); // 30 Hz
             }
         }
     }

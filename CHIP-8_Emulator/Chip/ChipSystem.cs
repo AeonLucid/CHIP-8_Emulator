@@ -71,6 +71,11 @@ namespace CHIP_8_Emulator.Chip
         private byte[] _key;
 
         /// <summary>
+        ///     Used to generate random values.
+        /// </summary>
+        private Random _random;
+
+        /// <summary>
         ///     A flag which is set if the screen needs to be re-drawn.
         /// </summary>
         public bool DrawFlag { get; set; }
@@ -97,6 +102,8 @@ namespace CHIP_8_Emulator.Chip
 
             _delayTimer = 0;            // Reset timers (?)
             _soundTimer = 0;
+
+            _random = new Random();
 
             DrawFlag = true;            // Clear screen
         }
@@ -125,7 +132,7 @@ namespace CHIP_8_Emulator.Chip
         ///     Emulates the next CPU cycle.
         ///     Opcodes: https://en.wikipedia.org/wiki/CHIP-8#Opcode_table
         /// </summary>
-        public void EmulateCycle()
+        private void EmulateCycle()
         {
             // Fetch the next opcode.
             _opcode = (ushort) (_memory[_pc] << 8 | _memory[_pc + 1]);
@@ -133,23 +140,146 @@ namespace CHIP_8_Emulator.Chip
             // Decode opcode
             switch (_opcode & 0xF000)
             {
-                case 0x2000: // 2NNN: Calls subroutine at NNN.
+                case 0x0000:
+                    switch (_opcode & 0x000F)
+                    {
+                        case 0x000E:
+                            _pc = _stack[--_sp];
+                            _pc += 2;
+                            break;
+
+                        default:
+                            Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
+                            break;
+                    }
+                    break;
+
+                // 1NNN: Jumps to address NNN.
+                case 0x1000:
+                    _pc = (ushort) (_opcode & 0x0FFF);
+                    break;
+
+                // 2NNN: Calls subroutine at NNN.
+                case 0x2000: 
                     _stack[_sp] = _pc;
                     _sp++;
                     _pc = (ushort) (_opcode & 0x0FFF);
                     break;
 
-                case 0x6000: // 6XNN: Sets VX to NN.
+                // 3XNN: Skips the next instruction if VX equals NN. (Usually the next instruction is a jump to skip a code block)
+                case 0x3000:
+                    if (_v[(_opcode & 0x0F00) >> 8] == (_opcode & 0x00FF))
+                    {
+                        _pc += 4;
+                    }
+                    else
+                    {
+                        _pc += 2;
+                    }
+                    break;
+
+                // 4XNN: Skips the next instruction if VX doesn't equal NN. (Usually the next instruction is a jump to skip a code block)
+                case 0x4000:
+                    if (_v[(_opcode & 0x0F00) >> 8] != (_opcode & 0x00FF))
+                    {
+                        _pc += 4;
+                    }
+                    else
+                    {
+                        _pc += 2;
+                    }
+                    break;
+
+                // 6XNN: Sets VX to NN.
+                case 0x6000: 
                     _v[(_opcode & 0x0F00) >> 8] = (byte) (_opcode & 0x00FF);
                     _pc += 2;
                     break;
 
-                case 0xA000: // ANNN: Sets I to the address NNN.
+                // 7XNN: Adds NN to VX.
+                case 0x7000:
+                    _v[(_opcode & 0x0F00) >> 8] += (byte) (_opcode & 0x00FF);
+                    _pc += 2;
+                    break;
+
+                case 0x8000:
+                    switch (_opcode & 0x000F)
+                    {
+                        // 8XY0: Sets VX to the value of VY.
+                        case 0x0000:
+                            _v[(_opcode & 0x0F00) >> 8] = _v[(_opcode & 0x00F0) >> 4];
+                            _pc += 2;
+                            break;
+
+                        // 8XY2: Sets VX to VX and VY. (Bitwise AND operation) VF is reset to 0.
+                        case 0x0002:
+                            _v[(_opcode & 0x0F00) >> 8] &= _v[(_opcode & 0x00F0) >> 4];
+                            _v[0xF] = 0;
+                            _pc += 2;
+                            break;
+
+                        // 8XY4: Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
+                        case 0x0004:
+                            if (_v[(_opcode & 0x00F0) >> 4] > 0xFF - _v[(_opcode & 0x0F00) >> 8])
+                            {
+                                _v[0xF] = 1;
+                            }
+                            else
+                            {
+                                _v[0xF] = 0;
+                            }
+
+                            _v[(_opcode & 0x0F00) >> 8] += _v[(_opcode & 0x00F0) >> 4];
+                            _pc += 2;
+                            break;
+
+                        // 8XY5: VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
+                        case 0x0005:
+                            if (_v[(_opcode & 0x00F0) >> 4] > _v[(_opcode & 0x0F00) >> 8])
+                            {
+                                _v[0xF] = 0;
+                            }
+                            else
+                            {
+                                _v[0xF] = 1;
+                            }
+
+                            _v[(_opcode & 0x0F00) >> 8] -= _v[(_opcode & 0x00F0) >> 4];
+                            _pc += 2;
+                            break;
+
+                        default:
+                            Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
+                            break;
+                    }
+                    break;
+
+                // 9XY0: Skips the next instruction if VX doesn't equal VY. (Usually the next instruction is a jump to skip a code block)
+                case 0x9000:
+                    if (_v[(_opcode & 0x0F00) >> 8] != _v[(_opcode & 0x00F0) >> 4])
+                    {
+                        _pc += 4;
+                    }
+                    else
+                    {
+                        _pc += 2;
+                    }
+                    break;
+
+                // ANNN: Sets I to the address NNN.
+                case 0xA000: 
                     _i = (ushort) (_opcode & 0x0FFF);
                     _pc += 2;
                     break;
 
-                case 0xD000: // DXYN: Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
+                // CXNN: Sets VX to the result of a bitwise and operation on a random number (Typically: 0 to 255) and NN.
+                case 0xC000:
+                    _v[(_opcode & 0x0F00) >> 8] = (byte) ((byte)(_random.Next(0, 255) & 0x00FF) & (byte)(_opcode & 0x00FF));
+                    _pc += 2;
+                    break;
+                
+                // DXYN: Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
+                case 0xD000: 
                     var x = _v[(_opcode & 0x0F00) >> 8];
                     var y = _v[(_opcode & 0x00F0) >> 4];
                     var height = _opcode & 0x000F;
@@ -175,8 +305,78 @@ namespace CHIP_8_Emulator.Chip
                     _pc += 2;
                     break;
 
+                // Keys
+                case 0xE000:
+                    switch (_opcode & 0x00FF)
+                    {
+                        // EXA1: Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
+                        case 0x00A1:
+                            // TODO: Skip if _v[(_opcode & 0x0F00) >> 8] isnt pressed.
+                            _pc += 4;
+                            break;
+                            
+                        default:
+                            Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
+                            break;
+                    }
+                    break;
+
+                case 0xF000:
+                    var fx = (byte)((_opcode & 0x0F00) >> 8);
+                    switch (_opcode & 0x00FF)
+                    {
+                        // FX07: Sets VX to the value of the delay timer.
+                        case 0x0007:
+                            _v[(_opcode & 0x0F00) >> 8] = _delayTimer;
+                            _pc += 2;
+                            break;
+
+                        // FX15: Sets the delay timer to VX.
+                        case 0x0015:
+                            _delayTimer = _v[(_opcode & 0x0F00) >> 8];
+                            _pc += 2;
+                            break;
+
+                        // FX18: Sets the sound timer to VX.
+                        case 0x0018:
+                            _soundTimer = _v[(_opcode & 0x0F00) >> 8];
+                            _pc += 2;
+                            break;
+
+                        // FX29: Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
+                        case 0x0029:
+                            _i = (ushort) (_v[fx] * 0x5);
+                            _pc += 2;
+                            break;
+
+                        // FX33: Stores the binary-coded decimal representation of VX.
+                        case 0x0033:
+                            _memory[_i] = (byte) (_v[fx] / 100);
+                            _memory[_i + 1] = (byte) (_v[fx] / 10 % 10);
+                            _memory[_i + 2] = (byte) (_v[fx] % 100 % 10);
+                            _pc += 2;
+                            break;
+
+                        // FX65: Fills V0 to VX (including VX) with values from memory starting at address I.
+                        case 0x0065:
+                            for (var i = 0; i <= fx; i++)
+                            {
+                                _v[i] = _memory[_i + i];
+                            }
+                            
+                            _i += fx;
+                            _i++;
+                            _pc += 2;
+                            break;
+
+                        default:
+                            Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
+                            break;
+                    }
+                    break;
+
                 default:
-//                    Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
+                    Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
                     break;
             }
         }
