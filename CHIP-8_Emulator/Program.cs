@@ -1,17 +1,15 @@
-﻿using System;
-using System.Windows.Forms;
-using CHIP_8_Emulator.Forms;
+﻿using CHIP_8_Emulator.Chip;
 
 namespace CHIP_8_Emulator
 {
     internal static class Program
     {
-        [STAThread]
         private static void Main(string[] args)
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new FrmGame());
+            using (var game = new ChipWindow())
+            {
+                game.Run(60); // 60 Hz
+            }
         }
     }
 }

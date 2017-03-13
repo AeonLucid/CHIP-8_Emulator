@@ -172,7 +172,6 @@ namespace CHIP_8_Emulator.Chip
 
                 default:
                     Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
-                    Thread.Sleep(5000);
                     break;
             }
 
@@ -190,6 +189,21 @@ namespace CHIP_8_Emulator.Chip
                 }
 
                 _soundTimer--;
+            }
+        }
+
+        /// <summary>
+        ///     Emulates multiple CPU cycles.
+        ///     Thanks to: http://stackoverflow.com/a/827720
+        /// </summary>
+        /// <param name="cycles"></param>
+        public void EmulateCycles(int cycles)
+        {
+            var n = 0;
+            while (n < cycles)
+            {
+                EmulateCycle();
+                n += 1;
             }
         }
     }
