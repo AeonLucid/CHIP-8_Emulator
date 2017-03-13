@@ -55,7 +55,7 @@
   <ItemGroup>
     <Compile Include="Chip\ChipConstants.cs" />
     <Compile Include="Chip\ChipGame.cs" />
-    <Compile Include="Game.cs" />
+    <Compile Include="Chip\ChipWindow.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Chip\ChipSystem.cs" />

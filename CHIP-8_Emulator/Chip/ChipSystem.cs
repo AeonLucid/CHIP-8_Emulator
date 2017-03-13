@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
 
 namespace CHIP_8_Emulator.Chip
 {
@@ -9,6 +8,10 @@ namespace CHIP_8_Emulator.Chip
     /// </summary>
     internal class ChipSystem
     {
+        public const int TargetClockSpeed = 540;
+
+        public const int TargetClockSpeedSound = 60;
+
         /// <summary>
         ///     The current opcode.
         /// </summary>
@@ -94,6 +97,8 @@ namespace CHIP_8_Emulator.Chip
 
             _delayTimer = 0;            // Reset timers (?)
             _soundTimer = 0;
+
+            DrawFlag = true;            // Clear screen
         }
 
         public void LoadGame(ChipGame game)
@@ -171,10 +176,30 @@ namespace CHIP_8_Emulator.Chip
                     break;
 
                 default:
-                    Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
+//                    Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
                     break;
             }
+        }
 
+        /// <summary>
+        ///     Emulates multiple CPU cycles.
+        ///     Thanks to: 
+        ///      - http://stackoverflow.com/a/1393529
+        ///      - http://stackoverflow.com/a/827720
+        /// </summary>
+        /// <param name="cycles"></param>
+        public void EmulateCycles(int cycles)
+        {
+            var n = 0;
+            while (n < cycles)
+            {
+                EmulateCycle();
+                n += 1;
+            }
+        }
+
+        public void EmulateSoundCycle()
+        {
             // Update timers
             if (_delayTimer > 0)
             {
@@ -189,21 +214,6 @@ namespace CHIP_8_Emulator.Chip
                 }
 
                 _soundTimer--;
-            }
-        }
-
-        /// <summary>
-        ///     Emulates multiple CPU cycles.
-        ///     Thanks to: http://stackoverflow.com/a/827720
-        /// </summary>
-        /// <param name="cycles"></param>
-        public void EmulateCycles(int cycles)
-        {
-            var n = 0;
-            while (n < cycles)
-            {
-                EmulateCycle();
-                n += 1;
             }
         }
     }

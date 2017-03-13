@@ -9,8 +9,6 @@ namespace CHIP_8_Emulator.Chip
 
         private const int GameSizeScale = 10;
 
-        private const int TargetClockSpeed = 540;
-
         private readonly ChipSystem _chipSystem;
 
         public ChipWindow() : base(GameWidth * GameSizeScale, GameHeight * GameSizeScale)
@@ -19,15 +17,19 @@ namespace CHIP_8_Emulator.Chip
             _chipSystem.Initialize();
             _chipSystem.LoadGame(ChipGame.Pong);
 
+            WindowBorder = WindowBorder.Fixed;
             UpdateFrame += OnUpdateFrame;
             RenderFrame += OnRenderFrame;
         }
 
+        // Called at 60 Hz
         private void OnUpdateFrame(object sender, FrameEventArgs frameEventArgs)
         {
-            _chipSystem.EmulateCycles((int) (TargetClockSpeed / TargetUpdateFrequency));
+            _chipSystem.EmulateCycles((int) (ChipSystem.TargetClockSpeed / TargetUpdateFrequency));
+            _chipSystem.EmulateSoundCycle();
         }
 
+        // Called as fast as possible
         private void OnRenderFrame(object sender, FrameEventArgs frameEventArgs)
         {
             if (!_chipSystem.DrawFlag) return;
