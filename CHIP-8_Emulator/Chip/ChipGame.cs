@@ -3,6 +3,7 @@
     internal enum ChipGame
     {
         Blinky,
+        Invaders,
         Pong,
         Pong2,
         Puzzle, // Opcodes required: FX0A

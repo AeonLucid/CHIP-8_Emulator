@@ -68,7 +68,10 @@ namespace CHIP_8_Emulator.Chip
         #region Keys
         private void OnKeyUp(object sender, KeyboardKeyEventArgs keyboardKeyEventArgs)
         {
+            var chipKey = ChipKeyMapping.Map.FirstOrDefault(x => x.Key == keyboardKeyEventArgs.Key);
+            if (chipKey.Key == Key.Unknown) return;
 
+            _chipSystem.Keys[chipKey.Value] = false;
         }
 
         private void OnKeyDown(object sender, KeyboardKeyEventArgs keyboardKeyEventArgs)
@@ -82,7 +85,7 @@ namespace CHIP_8_Emulator.Chip
             var chipKey = ChipKeyMapping.Map.FirstOrDefault(x => x.Key == keyboardKeyEventArgs.Key);
             if (chipKey.Key == Key.Unknown) return;
 
-            
+            _chipSystem.Keys[chipKey.Value] = true;
         }
         #endregion
     }

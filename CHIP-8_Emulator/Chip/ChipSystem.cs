@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace CHIP_8_Emulator.Chip
@@ -80,6 +81,8 @@ namespace CHIP_8_Emulator.Chip
         /// </summary>
         public bool DrawFlag { get; set; }
 
+        public Dictionary<ushort, bool> Keys;
+
         public byte[] Pixels => _gfx;
 
         public void Initialize()
@@ -90,7 +93,7 @@ namespace CHIP_8_Emulator.Chip
             _sp = 0;                    // Reset stack pointer
 
             _gfx = new byte[64 * 32];   // Clear display
-            _stack = new ushort[16];      // Clear stack
+            _stack = new ushort[16];    // Clear stack
             _v = new byte[16];          // Clear registers V0-VF
             _memory = new byte[4096];   // Clear memory
 
@@ -106,6 +109,13 @@ namespace CHIP_8_Emulator.Chip
             _random = new Random();
 
             DrawFlag = true;            // Clear screen
+
+            Keys = new Dictionary<ushort, bool>(ChipKeyMapping.Map.Count); // Clear keys
+
+            foreach (var keymap in ChipKeyMapping.Map)
+            {
+                Keys.Add(keymap.Value, false);
+            }
         }
 
         public void LoadGame(ChipGame game)
@@ -331,7 +341,10 @@ namespace CHIP_8_Emulator.Chip
                         {
                             if ((pixel & (0x80 >> xLine)) == 0) continue; // Shift to the current bit, continue if that bit is set in the current pixel of the sprite.
 
-                            if (_gfx[x + xLine + (y + yLine) * 64] == 1) // Check if byte is already set to 1.
+                            var targetY = x + xLine + (y + yLine) * 64;
+                            if (targetY > _gfx.Length) continue;
+                            
+                            if (_gfx[targetY] == 1) // Check if byte is already set to 1.
                             {
                                 _v[0xF] = 1; // Collision occured.
                             }
@@ -348,10 +361,28 @@ namespace CHIP_8_Emulator.Chip
                 case 0xE000:
                     switch (_opcode & 0x00FF)
                     {
+                        // EX9E: Skips the next instruction if the key stored in VX is pressed. (Usually the next instruction is a jump to skip a code block)
+                        case 0x009E:
+                            if (Keys[_v[(_opcode & 0x0F00) >> 8]])
+                            {
+                                _pc += 4;
+                            }
+                            else
+                            {
+                                _pc += 2;
+                            }
+                            break;
+
                         // EXA1: Skips the next instruction if the key stored in VX isn't pressed. (Usually the next instruction is a jump to skip a code block)
                         case 0x00A1:
-                            // TODO: Skip if _v[(_opcode & 0x0F00) >> 8] isnt pressed.
-                            _pc += 4;
+                            if (Keys[_v[(_opcode & 0x0F00) >> 8]])
+                            {
+                                _pc += 2;
+                            }
+                            else
+                            {
+                                _pc += 4;
+                            }
                             break;
                             
                         default:
