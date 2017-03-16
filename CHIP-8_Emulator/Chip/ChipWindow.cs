@@ -1,5 +1,8 @@
-﻿using OpenTK;
+﻿using System;
+using System.Linq;
+using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Input;
 
 namespace CHIP_8_Emulator.Chip
 {
@@ -20,6 +23,8 @@ namespace CHIP_8_Emulator.Chip
             WindowBorder = WindowBorder.Fixed;
             UpdateFrame += OnUpdateFrame;
             RenderFrame += OnRenderFrame;
+            KeyUp += OnKeyUp;
+            KeyDown += OnKeyDown;
         }
 
         // Called at 60 Hz
@@ -59,5 +64,26 @@ namespace CHIP_8_Emulator.Chip
 
             _chipSystem.DrawFlag = false;
         }
+
+        #region Keys
+        private void OnKeyUp(object sender, KeyboardKeyEventArgs keyboardKeyEventArgs)
+        {
+
+        }
+
+        private void OnKeyDown(object sender, KeyboardKeyEventArgs keyboardKeyEventArgs)
+        {
+            if (keyboardKeyEventArgs.Key == Key.Escape)
+            {
+                Close();
+                return;
+            }
+
+            var chipKey = ChipKeyMapping.Map.FirstOrDefault(x => x.Key == keyboardKeyEventArgs.Key);
+            if (chipKey.Key == Key.Unknown) return;
+
+            
+        }
+        #endregion
     }
 }
