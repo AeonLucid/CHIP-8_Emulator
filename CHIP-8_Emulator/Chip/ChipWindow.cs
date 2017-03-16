@@ -15,7 +15,7 @@ namespace CHIP_8_Emulator.Chip
         {
             _chipSystem = new ChipSystem();
             _chipSystem.Initialize();
-            _chipSystem.LoadGame(ChipGame.Pong);
+            _chipSystem.LoadGame(ChipGame.Pong2);
 
             WindowBorder = WindowBorder.Fixed;
             UpdateFrame += OnUpdateFrame;

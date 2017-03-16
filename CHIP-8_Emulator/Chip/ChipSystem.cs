@@ -143,11 +143,21 @@ namespace CHIP_8_Emulator.Chip
                 case 0x0000:
                     switch (_opcode & 0x000F)
                     {
+                        case 0x0000:
+                            for (var i = 0; i < _gfx.Length; i++)
+                            {
+                                _gfx[i] = 0;
+                            }
+
+                            DrawFlag = true;
+                            _pc += 2;
+                            break;
+
                         case 0x000E:
                             _pc = _stack[--_sp];
                             _pc += 2;
                             break;
-
+                            
                         default:
                             Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
                             break;
@@ -211,9 +221,23 @@ namespace CHIP_8_Emulator.Chip
                             _pc += 2;
                             break;
 
+                        // 8XY1: Sets VX to VX or VY. (Bitwise OR operation) VF is reset to 0.
+                        case 0x0001:
+                            _v[(_opcode & 0x0F00) >> 8] |= _v[(_opcode & 0x00F0) >> 4];
+                            _v[0xF] = 0;
+                            _pc += 2;
+                            break;
+
                         // 8XY2: Sets VX to VX and VY. (Bitwise AND operation) VF is reset to 0.
                         case 0x0002:
                             _v[(_opcode & 0x0F00) >> 8] &= _v[(_opcode & 0x00F0) >> 4];
+                            _v[0xF] = 0;
+                            _pc += 2;
+                            break;
+
+                        // 8XY3: Sets VX to VX xor VY. VF is reset to 0.
+                        case 0x0003:
+                            _v[(_opcode & 0x0F00) >> 8] ^= _v[(_opcode & 0x00F0) >> 4];
                             _v[0xF] = 0;
                             _pc += 2;
                             break;
@@ -247,6 +271,21 @@ namespace CHIP_8_Emulator.Chip
                             _v[(_opcode & 0x0F00) >> 8] -= _v[(_opcode & 0x00F0) >> 4];
                             _pc += 2;
                             break;
+
+                        // 8XY6: Shifts VX right by one. VF is set to the value of the least significant bit of VX before the shift.
+                        case 0x0006:
+                            _v[0xF] = (byte) (_v[(_opcode & 0x0F00) >> 8] & 1);
+                            _v[(_opcode & 0x0F00) >> 8] >>= 1;
+                            _pc += 2;
+                            break;
+
+                        // 8XYE: Shifts VX left by one. VF is set to the value of the most significant bit of VX before the shift.
+                        case 0x000E:
+                            _v[0xF] = (byte)(_v[(_opcode & 0x0F00) >> 8] >> 7);
+                            _v[(_opcode & 0x0F00) >> 8] <<= 1;
+                            _pc += 2;
+                            break;
+
 
                         default:
                             Console.WriteLine($">> Unknown opcode: 0x{_opcode:X}");
@@ -343,6 +382,21 @@ namespace CHIP_8_Emulator.Chip
                             _pc += 2;
                             break;
 
+                        // FX1E: Adds VX to I
+                        case 0x001E:
+                            if (_i + _v[fx] > 0xFFF)
+                            {
+                                _v[0xF] = 1;
+                            }
+                            else
+                            {
+                                _v[0xF] = 1;
+                            }
+
+                            _i += _v[fx];
+                            _pc += 2;
+                            break;
+
                         // FX29: Sets I to the location of the sprite for the character in VX. Characters 0-F (in hexadecimal) are represented by a 4x5 font.
                         case 0x0029:
                             _i = (ushort) (_v[fx] * 0x5);
@@ -354,6 +408,18 @@ namespace CHIP_8_Emulator.Chip
                             _memory[_i] = (byte) (_v[fx] / 100);
                             _memory[_i + 1] = (byte) (_v[fx] / 10 % 10);
                             _memory[_i + 2] = (byte) (_v[fx] % 100 % 10);
+                            _pc += 2;
+                            break;
+
+                        // FX55: Stores V0 to VX (including VX) in memory starting at address I.
+                        case 0x0055:
+                            for (var i = 0; i <= fx; i++)
+                            {
+                                _memory[_i + i] = _v[i];
+                            }
+
+                            _i += fx;
+                            _i++;
                             _pc += 2;
                             break;
 
