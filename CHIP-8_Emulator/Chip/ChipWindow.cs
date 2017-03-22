@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
@@ -18,7 +17,7 @@ namespace CHIP_8_Emulator.Chip
         {
             _chipSystem = new ChipSystem();
             _chipSystem.Initialize();
-            _chipSystem.LoadGame(ChipGame.Pong2);
+            _chipSystem.LoadGame(ChipGame.Blinky);
 
             WindowBorder = WindowBorder.Fixed;
             UpdateFrame += OnUpdateFrame;

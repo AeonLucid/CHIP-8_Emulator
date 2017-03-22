@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace CHIP_8_Emulator.Chip
 {
@@ -397,7 +398,16 @@ namespace CHIP_8_Emulator.Chip
                     {
                         // FX07: Sets VX to the value of the delay timer.
                         case 0x0007:
-                            _v[(_opcode & 0x0F00) >> 8] = _delayTimer;
+                            _v[fx] = _delayTimer;
+                            _pc += 2;
+                            break;
+
+                        // FX0A: A key press is awaited, and then stored in VX. (Blocking Operation. All instruction halted until next key event)
+                        case 0x000A:
+                            var pressedKey = Keys.FirstOrDefault(k => k.Value);
+                            if (pressedKey.Value == false) return;
+
+                            _v[fx] = (byte) pressedKey.Key;
                             _pc += 2;
                             break;
 
